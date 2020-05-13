@@ -29,7 +29,8 @@ namespace Client
         private void Form1_Load(object sender, EventArgs e)
         {
             client = new SimpleTcpClient();
-            client.StringEncoder = Encoding.UTF8;
+            //client.StringEncoder = Encoding.UTF8;
+            client.StringEncoder = Encoding.ASCII;
             client.DelimiterDataReceived += Client_DataReceived;
             labelClient.Visible = false;
             labelResponse.Visible = false;

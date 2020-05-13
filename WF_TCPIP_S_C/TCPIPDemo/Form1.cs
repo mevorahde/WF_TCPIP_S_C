@@ -30,49 +30,73 @@ namespace TCPIPDemo
         private void Server_DataReceived(object sender, SimpleTCP.Message e)
         {
 
-            string xmlString = @"<?xml version='1.0' encoding='UTF-8'?>
-                                <xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform' version='1.0'>
-	                            <xsl:param name='ControlId' />
-	                            <xsl:param name='MessageTimeStamp' />
-	                            <xsl:template match='/'>
-		                            <XCSData>
-			                            <ACK>
-				                            <Success>true</Success>
-				                            <ControlId>
-					                            <xsl:value-of select='$ControlId' />
-				                            </ControlId>
-				                            <MessageTimeStamp>
-					                            <xsl:value-of select='$MessageTimeStamp' />
-				                            </MessageTimeStamp>
-				                            <Message>Message Successfully Processed</Message>
-			                           </ACK>
-		                            </XCSData>
-	                            </xsl:template>
-                              </xsl:stylesheet>";
-            try
+            DateTime timeNow = DateTime.Now;
+            string MessageTimeStamp = timeNow.ToString("yyyy-MM-dd HH:mm:ss");
+            string messageCheck = e.MessageString;
+            if (messageCheck.StartsWith("<"))
             {
-                txtStatus.Invoke((MethodInvoker)delegate ()
+                var xDoc = XDocument.Parse(e.MessageString);
+
+                var ns = xDoc.Root.Name.Namespace;
+                var messageid = xDoc.Element(ns + "XCSData").Element(ns + "message").Element(ns + "messageid");
+                XDocument xml = new XDocument(
+                                        new XElement("XCSData",
+                                            new XElement("ACK",
+                                                         new XElement("Success", "true"),
+                                                         new XElement("ControlId", messageid),
+                                                         new XElement("MessageTimeStamp", MessageTimeStamp)
+                                                         )
+                                                    )
+                                 );
+
+                string xmlString = xml.ToString();
+                try
                 {
+                    txtStatus.Invoke((MethodInvoker)delegate ()
+                    {
 
-                    //DateTime MessageTimeStamp = DateTime.Now;
-                    //string recievedstring = e.MessageString;
-                    var document = new XmlDocument();
-                    //document.LoadXml(recievedstring);
-                    //var messageID = document.GetElementsByTagName("xsl:messageid");
-                    var xDoc = XDocument.Parse(xmlString);
-                    string xmlDoc = xDoc.ToString();
-
-                    //string responseBack = "Message Successful";
-                    txtStatus.Text += e.MessageString;
-                    //e.ReplyLine(string.Format(responseBack));
-                    e.ReplyLine(string.Format(xmlDoc));
-                });
+                        txtStatus.Text += e.MessageString;
+                        e.ReplyLine(string.Format(xmlString));
+                    });
+                }
+                catch (Exception ex)
+                {
+                    string exError = ex.ToString();
+                    e.ReplyLine(string.Format(exError));
+                };
             }
-            catch (Exception ex)
+            else
             {
-                string exError = ex.ToString();
-                e.ReplyLine(string.Format(exError));
-            };
+                Guid generatedGUID = Guid.NewGuid();
+
+                XDocument xml = new XDocument(
+                                        new XElement("XCSData",
+                                            new XElement("ACK",
+                                                         new XElement("Success", "true"),
+                                                         new XElement("ControlId", generatedGUID),
+                                                         new XElement("MessageTimeStamp", MessageTimeStamp)
+                                                         )
+                                                    )
+                                 );
+
+                string xmlString = xml.ToString();
+                try
+                {
+                    txtStatus.Invoke((MethodInvoker)delegate ()
+                    {
+
+                        txtStatus.Text += e.MessageString;
+                        e.ReplyLine(string.Format(xmlString));
+                    });
+                }
+                catch (Exception ex)
+                {
+                    string exError = ex.ToString();
+                    e.ReplyLine(string.Format(exError));
+                };
+
+            }
+
         }
 
         private void btnStart_Click(object sender, EventArgs e)

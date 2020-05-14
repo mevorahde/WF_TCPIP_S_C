@@ -41,7 +41,7 @@ namespace TCPIPDemo
                 var messageid = xDoc.Element(ns + "XCSData").Element(ns + "message").Element(ns + "messageid");
                 XDocument xml = new XDocument(
                                         new XElement("XCSData",
-                                            new XElement("ACK",
+                                            new XElement("NACK",
                                                          new XElement("Success", "true"),
                                                          new XElement("ControlId", messageid),
                                                          new XElement("MessageTimeStamp", MessageTimeStamp)
@@ -62,7 +62,19 @@ namespace TCPIPDemo
                 catch (Exception ex)
                 {
                     string exError = ex.ToString();
-                    e.ReplyLine(string.Format(exError));
+                    XDocument xmlError = new XDocument(
+                        new XElement("XCSData",
+                            new XElement("NACK",
+                                         new XElement("Success", "false"),
+                                         new XElement("ControlId", messageid),
+                                         new XElement("MessageTimeStamp", MessageTimeStamp),
+                                         new XElement("Error", exError)
+                                         )
+                                    )
+                 );
+
+                    string xmlStringError = xmlError.ToString();
+                    e.ReplyLine(string.Format(xmlStringError));
                 };
             }
             else
@@ -92,7 +104,19 @@ namespace TCPIPDemo
                 catch (Exception ex)
                 {
                     string exError = ex.ToString();
-                    e.ReplyLine(string.Format(exError));
+                    XDocument xmlError = new XDocument(
+                        new XElement("XCSData",
+                            new XElement("ACK",
+                                         new XElement("Success", "false"),
+                                         new XElement("ControlId", generatedGUID),
+                                         new XElement("MessageTimeStamp", MessageTimeStamp),
+                                         new XElement("Error", exError)
+                                         )
+                                    )
+                 );
+
+                    string xmlStringError = xmlError.ToString();
+                    e.ReplyLine(string.Format(xmlStringError));
                 };
 
             }
@@ -101,15 +125,30 @@ namespace TCPIPDemo
 
         private void btnStart_Click(object sender, EventArgs e)
         {
-            labelServer.Visible = true;
-            IPAddress ip = IPAddress.Parse(txtHost.Text);
-            server.Start(ip, Convert.ToInt32(txtPort.Text));
+            try
+            {
+                labelServer.Visible = true;
+                IPAddress ip = IPAddress.Parse(txtHost.Text);
+                server.Start(ip, Convert.ToInt32(txtPort.Text));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("An error has occurred...");
+                Console.WriteLine(ex.ToString());
+            }
         }
 
         private void btnStop_Click(object sender, EventArgs e)
         {
             if (server.IsStarted)
+            {
                 server.Stop();
+            }
+            else if (!server.IsStarted)
+            {
+                MessageBox.Show("Server not started...");
+            }
+
             labelServer.Visible = false;
         }
     }
